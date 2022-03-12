@@ -173,12 +173,8 @@ impl io::Write for RollingFileAppender {
         let writer = self.writer.get_mut();
         if self.state.should_rollover(now) {
             let _did_cas = self.state.advance_date(now);
-            if _did_cas {
-                // debug_assert!(_did_cas, "if we have &mut access to the appender, no other thread can have advanced the timestamp...");
-                self.state.refresh_writer(now, writer);
-            } else {
-                println!("Failed assert: if we have &mut access to the appender, no other thread can have advanced the timestamp...");
-            }
+            debug_assert!(_did_cas, "if we have &mut access to the appender, no other thread can have advanced the timestamp...");
+            self.state.refresh_writer(now, writer);
         }
         writer.write(buf)
     }
@@ -482,11 +478,7 @@ impl io::Write for RollingWriter<'_> {
 
 impl Inner {
     fn refresh_writer(&self, now: OffsetDateTime, file: &mut File) {
-        // debug_assert!(self.should_rollover(now));
-        if !self.should_rollover(now) {
-            println!("Failed debug_assert!(self.should_rollover(now))");
-            return;
-        }
+        debug_assert!(self.should_rollover(now));
 
         let filename = self.rotation.join_date(&self.log_filename_prefix, &now);
 
@@ -516,16 +508,16 @@ impl Inner {
             .next_date(&now)
             .map(|date| date.unix_timestamp() as usize)
             .unwrap_or(0);
-        // self.next_date.store(next_date, Ordering::SeqCst);
-        // return true;
-        self.next_date
-            .compare_exchange(
-                now.unix_timestamp() as usize,
-                next_date,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            )
-            .is_ok()
+        self.next_date.store(next_date, Ordering::SeqCst);
+        return true;
+        // self.next_date
+        //     .compare_exchange(
+        //         now.unix_timestamp() as usize,
+        //         next_date,
+        //         Ordering::AcqRel,
+        //         Ordering::Acquire,
+        //     )
+        //     .is_ok()
     }
 }
 
