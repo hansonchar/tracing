@@ -508,16 +508,14 @@ impl Inner {
             .next_date(&now)
             .map(|date| date.unix_timestamp() as usize)
             .unwrap_or(0);
-        self.next_date.store(next_date, Ordering::SeqCst);
-        return true;
-        // self.next_date
-        //     .compare_exchange(
-        //         now.unix_timestamp() as usize,
-        //         next_date,
-        //         Ordering::AcqRel,
-        //         Ordering::Acquire,
-        //     )
-        //     .is_ok()
+        self.next_date
+            .compare_exchange(
+                now.unix_timestamp() as usize,
+                next_date,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .is_ok()
     }
 }
 
